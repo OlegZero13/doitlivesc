@@ -15,7 +15,11 @@ def emulate_script(seconds):
     print("Done")
 
 
-
-with ScreenCaster(PATH) as screencaster:
+context = ScreenCaster(
+    filepath=PATH,
+    x_position=1394,
+    y_position=37,
+)
+with context as screencaster:
     emulate_script(3)
 

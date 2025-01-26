@@ -9,12 +9,21 @@ import mss
 
 
 class ScreenCaster:
-    def __init__(self, filepath: Path, width: int = 600, height: int = 800) -> None:
+    def __init__(
+        self,
+        filepath: Path,
+        width: int = 720,
+        height: int = 1280,
+        x_position: int = 0,
+        y_position: int = 0,
+    ) -> None:
         filepath.parent.mkdir(parents=True, exist_ok=True)
 
         self.filepath = filepath
         self.width = width
         self.height = height
+        self.x_position = x_position
+        self.y_position = y_position
 
         self._fps = 20
         self._codec = cv2.VideoWriter_fourcc(*"XVID")
@@ -23,7 +32,7 @@ class ScreenCaster:
         self._recoding_thread = None
 
     def record(self) -> None:
-        monitor = {"top": 0, "left": 0, "width": self.width, "height": self.height}
+        monitor = {"top": self.y_position, "left": self.x_position, "width": self.width, "height": self.height}
         with mss.mss() as sct:
             frame_duration = 1 / self._fps
 
