@@ -715,6 +715,18 @@ files = [
 tests = ["pytest"]
 
 [[package]]
+name = "pvrecorder"
+version = "1.2.4"
+description = "Recorder library for Picovoice."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "pvrecorder-1.2.4-py3-none-any.whl", hash = "sha256:ab97f74da4acc2fd98e0f0dd02bdf41b5e401ced851202a044f109f251333c4e"},
+    {file = "pvrecorder-1.2.4.tar.gz", hash = "sha256:43295dff6b69e4da04f1dc40438639552e6be639e3685ccbd888f5e7af2a3f6e"},
+]
+
+[[package]]
 name = "pygame"
 version = "2.6.1"
 description = "Python Game Development"
@@ -994,4 +1006,4 @@ tests = ["IPython", "pytest"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "12defd89bf9eb4599912a6d2e8099f71bad630fc17c9e5ecb5d9ca6bee803217"
+content-hash = "0c84edea1a6079a4b9f9c2395bfe65c45399b1cbf54ea6dbede81e7294b837a5"
