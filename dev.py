@@ -18,3 +18,4 @@ def emulate_script(seconds):
 
 with ScreenCaster(PATH) as screencaster:
     emulate_script(3)
+
