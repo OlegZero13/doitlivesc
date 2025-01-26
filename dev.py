@@ -5,6 +5,7 @@ from doitlive.screencast import ScreenCaster
 
 
 PATH = Path("videos/dev.mp4")
+MUSIC_PATH = Path("videos/jazz.mp3")
 
 
 def emulate_script(seconds):
@@ -17,6 +18,7 @@ def emulate_script(seconds):
 
 context = ScreenCaster(
     filepath=PATH,
+    music_filepath=MUSIC_PATH,
     x_position=1394,
     y_position=37,
 )

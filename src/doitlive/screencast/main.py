@@ -5,13 +5,16 @@ from typing import Self
 
 import cv2
 import numpy as np
+from moviepy import AudioClip, AudioFileClip, VideoFileClip, CompositeAudioClip
 import mss
+import pygame
 
 
 class ScreenCaster:
     def __init__(
         self,
         filepath: Path,
+        music_filepath: Path = None,
         width: int = 720,
         height: int = 1280,
         x_position: int = 0,
@@ -20,6 +23,7 @@ class ScreenCaster:
         filepath.parent.mkdir(parents=True, exist_ok=True)
 
         self.filepath = filepath
+        self.music_filepath = music_filepath
         self.width = width
         self.height = height
         self.x_position = x_position
@@ -52,6 +56,11 @@ class ScreenCaster:
 
     def __enter__(self) -> Self:
         print("Start recording...")
+        pygame.mixer.init()
+        if self.music_filepath is not None:
+            pygame.mixer.music.load(self.music_filepath)
+            pygame.mixer.music.play(-1)
+
         self._buffer = cv2.VideoWriter(str(self.filepath), self._codec, self._fps, (self.width, self.height))
         self._is_recording = True
         self._recoding_thread = threading.Thread(target=self.record)
@@ -66,3 +75,20 @@ class ScreenCaster:
             self._recoding_thread.join()
         
         self._buffer.release()
+
+        if self.music_filepath is not None:
+            pygame.mixer.music.stop()
+
+        self.add_background_music()
+
+    def add_background_music(self) -> None:
+        video_clip = VideoFileClip(str(self.filepath))
+        audio_clip = AudioFileClip(str(self.music_filepath))
+        final_clip = video_clip.with_audio(audio_clip)
+        final_clip.audio.duration = video_clip.duration
+
+        final_clip.write_videofile(str(self.filepath), codec="libx264")
+
+        audio_clip.close()
+        video_clip.close()
+        print("Combined")
