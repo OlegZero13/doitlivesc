@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 import functools
 import importlib.metadata
 import os
@@ -150,6 +151,8 @@ def run(
     quiet=False,
     test_mode=False,
     commentecho=False,
+    screencast=False,
+    screencast_config=None,
 ):
     """Main function for "magic-running" a list of commands."""
     if not quiet:
@@ -169,8 +172,16 @@ def run(
         test_mode=test_mode,
         commentecho=commentecho,
     )
+    import ipdb; ipdb.set_trace()
+    # TODO: initialise the screencast context, +add a filepath to the recording via a parameter.
+    if screencast:
+        print("Loading screencast parameters will come from", screencast_config)
+        config = {}
+        screencast_context = ScreencastContext(**config)
+    else:
+        screencast_context = nullcontext()
 
-    with ScreencastContext() as screencaster:
+    with screencast_context:
         i = 0
         while i < len(commands):
             command = commands[i].strip()
@@ -394,6 +405,19 @@ ENVVAR_OPTION = click.option(
     "--envvar", "-e", metavar="<envvar>", multiple=True, help="Adds a session variable."
 )
 
+SCREENCAST_OPTION = click.option(
+    "--screencast",
+    "-r",
+    is_flag=True,
+    default=False,
+    help="Enable screencast mode.",
+)
+
+SCREENCAST_CONFIG_OPTION = click.option(
+    "--screencast-config",
+    "-C",
+    help="Path to the screencast config yaml file.",
+)
 
 def _compose(*functions):
     def inner(func1, func2):
@@ -404,7 +428,7 @@ def _compose(*functions):
 
 # Compose the decorators into "bundled" decorators
 player_command = _compose(
-    QUIET_OPTION, SHELL_OPTION, SPEED_OPTION, PROMPT_OPTION, ECHO_OPTION
+    QUIET_OPTION, SHELL_OPTION, SPEED_OPTION, PROMPT_OPTION, ECHO_OPTION, SCREENCAST_OPTION, SCREENCAST_CONFIG_OPTION
 )
 recorder_command = _compose(SHELL_OPTION, PROMPT_OPTION, ALIAS_OPTION, ENVVAR_OPTION)
 
@@ -412,7 +436,7 @@ recorder_command = _compose(SHELL_OPTION, PROMPT_OPTION, ALIAS_OPTION, ENVVAR_OP
 @player_command
 @click.argument("session_file", type=click.File("r", encoding="utf-8"))
 @cli.command()
-def play(quiet, session_file, shell, speed, prompt, commentecho):
+def play(quiet, session_file, shell, speed, prompt, commentecho, screencast, screencast_config):
     """Play a session file."""
     run(
         session_file.readlines(),
@@ -422,6 +446,8 @@ def play(quiet, session_file, shell, speed, prompt, commentecho):
         test_mode=TESTING,
         prompt_template=prompt,
         commentecho=commentecho,
+        screencast=screencast,
+        screencast_config=screencast_config,
     )
 
 
