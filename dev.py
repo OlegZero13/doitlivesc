@@ -1,11 +1,13 @@
 from pathlib import Path
 from time import sleep
 
-from doitlive.screencast import ScreenCaster
+from doitlive.screencast import ScreencastContext
 
 
-PATH = Path("videos/dev.mp4")
-MUSIC_PATH = Path("videos/jazz.mp3")
+PATH = Path("videos")
+# MUSIC_PATH = Path("videos/jazz.mp3")
+VOICE_FILENAME = "microphone_recording.wav"
+VIDEO_FILENAME = "screencast.mp4"
 
 
 def emulate_script(seconds):
@@ -16,12 +18,13 @@ def emulate_script(seconds):
     print("Done")
 
 
-context = ScreenCaster(
-    filepath=PATH,
-    music_filepath=MUSIC_PATH,
+context = ScreencastContext(
+    path=PATH,
+    voice_filename=VOICE_FILENAME,
+    video_filename=VIDEO_FILENAME,
     x_position=1394,
     y_position=37,
 )
-with context as screencaster:
+with context as sc:
     emulate_script(3)
 

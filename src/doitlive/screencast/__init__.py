@@ -1,4 +1,4 @@
-from .main import ScreenCaster
+from .main import ScreencastContext
 
 
-__all__ = ["ScreenCaster"]
+__all__ = ["ScreencastContext"]

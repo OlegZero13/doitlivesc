@@ -24,7 +24,7 @@ from doitlive.keyboard import (
 from doitlive.python_consoles import PythonRecorderConsole, start_python_player
 from doitlive.styling import THEMES, echo, echo_prompt, format_prompt
 from doitlive.termutils import get_default_shell
-from doitlive.screencast import ScreenCaster
+from doitlive.screencast import ScreencastContext
 
 env = os.environ
 click_completion.init()
@@ -170,7 +170,7 @@ def run(
         commentecho=commentecho,
     )
 
-    with ScreenCaster() as screencaster:
+    with ScreencastContext() as screencaster:
         i = 0
         while i < len(commands):
             command = commands[i].strip()
