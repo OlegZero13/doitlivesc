@@ -7,14 +7,16 @@ import cv2
 from mss import mss
 import numpy as np
 
+from .base import BaseRecorder
 
-class ScreenRecorder:
+
+class ScreenRecorder(BaseRecorder):
     def __init__(
         self,
-        filename: Path,
+        filepath: Path,
         monitor: Dict[str, int],
     ) -> None:
-        self.filename = filename
+        super().__init__(filepath)
         self.monitor = monitor
         
         self._fps = 20
@@ -45,7 +47,7 @@ class ScreenRecorder:
         self._is_recording = True
         screen_size = self.monitor["width"], self.monitor["height"]
         self._buffer = cv2.VideoWriter(
-            str(self.filename),
+            str(self.filepath),
             self._codec,
             self._fps,
             screen_size,

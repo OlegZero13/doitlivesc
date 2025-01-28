@@ -5,7 +5,7 @@ from doitlive.screencast import ScreencastContext
 
 
 PATH = Path("videos")
-# MUSIC_PATH = Path("videos/jazz.mp3")
+MUSIC_FILEPATH = "music/jazz.mp3"
 VOICE_FILENAME = "microphone_recording.wav"
 VIDEO_FILENAME = "screencast.mp4"
 
@@ -22,9 +22,10 @@ context = ScreencastContext(
     path=PATH,
     voice_filename=VOICE_FILENAME,
     video_filename=VIDEO_FILENAME,
+    music_filename=MUSIC_FILEPATH,
     x_position=1394,
     y_position=37,
 )
 with context as sc:
-    emulate_script(3)
+    emulate_script(5)
 

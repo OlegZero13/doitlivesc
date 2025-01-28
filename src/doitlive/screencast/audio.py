@@ -5,10 +5,12 @@ from pvrecorder import PvRecorder
 import wave
 import threading
 
+from .base import BaseRecorder
 
-class AudioRecorder:
-    def __init__(self, filename: Path) -> None:
-        self.filename = filename
+
+class AudioRecorder(BaseRecorder):
+    def __init__(self, filepath: Path) -> None:
+        super().__init__(filepath)
 
         self._frames = []
         self._is_recording = False
@@ -41,7 +43,7 @@ class AudioRecorder:
         audio_data = np.concatenate(self._frames).astype(np.int16)
         audio_bytes = audio_data.tobytes()
 
-        with wave.open(str(self.filename), 'wb') as wf:
+        with wave.open(str(self.filepath), 'wb') as wf:
             wf.setnchannels(1)  # Mono audio
             wf.setsampwidth(2)  # 16 bits per sample
             wf.setframerate(16000)  # Sample rate
