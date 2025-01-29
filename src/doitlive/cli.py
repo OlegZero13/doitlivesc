@@ -12,6 +12,7 @@ import click
 import click_completion
 from click import secho, style
 from click_didyoumean import DYMGroup
+import yaml
 
 from doitlive.exceptions import SessionError
 from doitlive.keyboard import (
@@ -151,8 +152,7 @@ def run(
     quiet=False,
     test_mode=False,
     commentecho=False,
-    screencast=False,
-    screencast_config=None,
+    screencast_config_path=None,
 ):
     """Main function for "magic-running" a list of commands."""
     if not quiet:
@@ -172,12 +172,15 @@ def run(
         test_mode=test_mode,
         commentecho=commentecho,
     )
-    import ipdb; ipdb.set_trace()
-    # TODO: initialise the screencast context, +add a filepath to the recording via a parameter.
-    if screencast:
-        print("Loading screencast parameters will come from", screencast_config)
-        config = {}
-        screencast_context = ScreencastContext(**config)
+    if screencast_config_path is not None:
+        secho(f"Opting for screencast recoring mode (loading config from: '{screencast_config_path}')", bold=True, fg="green")
+        with open(screencast_config_path) as f:
+            config = yaml.load(f, Loader=yaml.Loader)
+            if config is None:
+                echo(f"Could not load config from '{screencast_config_path}'")
+                sys.exit(1)
+
+        screencast_context = ScreencastContext(**config["screencast"])
     else:
         screencast_context = nullcontext()
 
@@ -405,16 +408,8 @@ ENVVAR_OPTION = click.option(
     "--envvar", "-e", metavar="<envvar>", multiple=True, help="Adds a session variable."
 )
 
-SCREENCAST_OPTION = click.option(
-    "--screencast",
-    "-r",
-    is_flag=True,
-    default=False,
-    help="Enable screencast mode.",
-)
-
-SCREENCAST_CONFIG_OPTION = click.option(
-    "--screencast-config",
+SCREENCAST_CONFIG_PATH_OPTION = click.option(
+    "--screencast-config-path",
     "-C",
     help="Path to the screencast config yaml file.",
 )
@@ -428,7 +423,7 @@ def _compose(*functions):
 
 # Compose the decorators into "bundled" decorators
 player_command = _compose(
-    QUIET_OPTION, SHELL_OPTION, SPEED_OPTION, PROMPT_OPTION, ECHO_OPTION, SCREENCAST_OPTION, SCREENCAST_CONFIG_OPTION
+    QUIET_OPTION, SHELL_OPTION, SPEED_OPTION, PROMPT_OPTION, ECHO_OPTION, SCREENCAST_CONFIG_PATH_OPTION
 )
 recorder_command = _compose(SHELL_OPTION, PROMPT_OPTION, ALIAS_OPTION, ENVVAR_OPTION)
 
@@ -436,7 +431,7 @@ recorder_command = _compose(SHELL_OPTION, PROMPT_OPTION, ALIAS_OPTION, ENVVAR_OP
 @player_command
 @click.argument("session_file", type=click.File("r", encoding="utf-8"))
 @cli.command()
-def play(quiet, session_file, shell, speed, prompt, commentecho, screencast, screencast_config):
+def play(quiet, session_file, shell, speed, prompt, commentecho, screencast_config_path):
     """Play a session file."""
     run(
         session_file.readlines(),
@@ -446,8 +441,7 @@ def play(quiet, session_file, shell, speed, prompt, commentecho, screencast, scr
         test_mode=TESTING,
         prompt_template=prompt,
         commentecho=commentecho,
-        screencast=screencast,
-        screencast_config=screencast_config,
+        screencast_config_path=screencast_config_path,
     )
 
 

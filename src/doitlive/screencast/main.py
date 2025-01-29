@@ -11,7 +11,7 @@ from .music import MusicPlayer
 class ScreencastContext:
     def __init__(
         self,
-        path: Path,
+        path: Path | str,
         voice_filename: str,
         video_filename: str,
         music_filename: str = None,
@@ -19,13 +19,15 @@ class ScreencastContext:
         height: int = 1280,
         x_position: int = 0,
         y_position: int = 0,
+        **kwargs,
     ) -> None:
-        self.path = path
+        self.path = Path(path)
         self.path.mkdir(parents=True, exist_ok=True)
 
-        voice_filepath = path / voice_filename
-        video_filepath = path / video_filename
-        music_filepath = path / music_filename if music_filename is not None else None
+        voice_filepath = self.path / voice_filename
+        video_filepath = self.path / video_filename
+        music_filepath = self.path / music_filename if music_filename is not None else None
+        
         monitor = dict(
             top=y_position,
             left=x_position,
@@ -35,6 +37,8 @@ class ScreencastContext:
         self.voice_recorder = AudioRecorder(voice_filepath)
         self.screen_recorder = ScreenRecorder(video_filepath, monitor)
         self.music_recorder = MusicPlayer(music_filepath) if music_filename is not None else None
+
+        _ = kwargs
 
     def __enter__(self) -> Self:
         self.voice_recorder.start()
@@ -62,4 +66,4 @@ class ScreencastContext:
 
         audio_clip.close()
         video_clip.close()
-        print("Combined")
+        print("Combined") 

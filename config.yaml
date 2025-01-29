@@ -1,0 +1,10 @@
+# Config for the Screencast mode
+screencast:
+  path: "videos"
+  voice_filename: "microphone_recording.wav"
+  video_filename: "screencast.mp4"
+  music_filename: "music/jazz.mp3"
+  width: 720
+  height: 1280
+  x_position: 0
+  y_position: 0
