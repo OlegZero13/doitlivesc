@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 import functools
 import importlib.metadata
 import os
@@ -11,6 +12,7 @@ import click
 import click_completion
 from click import secho, style
 from click_didyoumean import DYMGroup
+import yaml
 
 from doitlive.exceptions import SessionError
 from doitlive.keyboard import (
@@ -24,6 +26,7 @@ from doitlive.keyboard import (
 from doitlive.python_consoles import PythonRecorderConsole, start_python_player
 from doitlive.styling import THEMES, echo, echo_prompt, format_prompt
 from doitlive.termutils import get_default_shell
+from doitlive.screencast import ScreencastContext
 
 env = os.environ
 click_completion.init()
@@ -149,6 +152,7 @@ def run(
     quiet=False,
     test_mode=False,
     commentecho=False,
+    screencast_config_path=None,
 ):
     """Main function for "magic-running" a list of commands."""
     if not quiet:
@@ -168,80 +172,92 @@ def run(
         test_mode=test_mode,
         commentecho=commentecho,
     )
+    if screencast_config_path is not None:
+        secho(f"Opting for screencast recoring mode (loading config from: '{screencast_config_path}')", bold=True, fg="green")
+        with open(screencast_config_path) as f:
+            config = yaml.load(f, Loader=yaml.Loader)
+            if config is None:
+                echo(f"Could not load config from '{screencast_config_path}'")
+                sys.exit(1)
 
-    i = 0
-    while i < len(commands):
-        command = commands[i].strip()
-        i += 1
-        if not command:
-            continue
-        is_comment = command.startswith("#")
-        if not is_comment:
-            command_as_list = shlex.split(command)
-        else:
-            command_as_list = None
-        shell_match = SHELL_RE.match(command)
-        if is_comment:
-            # Parse comment magic
-            match = OPTION_RE.match(command)
-            if match:
-                option, arg = match.group("option"), match.group("arg")
-                func = OPTION_MAP[option]
-                func(state, arg)
-            elif state.commentecho():
-                comment = command.lstrip("#")
-                secho(comment, fg="yellow", bold=True)
-            continue
-        # Handle 'export' and 'alias' commands by storing them in SessionState
-        elif command_as_list and command_as_list[0] in ["alias", "export"]:
-            magictype(
-                command, prompt_template=state["prompt_template"], speed=state["speed"]
-            )
-            # Store the raw commands instead of using add_envvar and add_alias
-            # to avoid having to parse the command ourselves
-            state.add_command(command)
-        # Handle ```python and ```ipython by running "player" consoles
-        elif shell_match:
-            shell_name = shell_match.groups()[0].strip()
-            py_commands = []
-            more = True
-            while more:  # slurp up all the python code
-                try:
-                    py_command = commands[i].rstrip()
-                except IndexError as error:
-                    raise SessionError(
-                        f"Unmatched {shell_name} code block in " "session file."
-                    ) from error
-                i += 1
-                if py_command.startswith("```"):
-                    i += 1
-                    more = False
-                else:
-                    py_commands.append(py_command)
-            # Run the player console
-            magictype(
-                shell_name,
-                prompt_template=state["prompt_template"],
-                speed=state["speed"],
-            )
+        screencast_context = ScreencastContext(**config["screencast"])
+    else:
+        screencast_context = nullcontext()
 
-            if shell_name == "ipython":
-                from doitlive.ipython import start_ipython_player
-
-                # dedent all the commands to account for IPython's autoindentation
-                ipy_commands = [textwrap.dedent(cmd) for cmd in py_commands]
-                start_ipython_player(ipy_commands, speed=state["speed"])
+    with screencast_context:
+        i = 0
+        while i < len(commands):
+            command = commands[i].strip()
+            i += 1
+            if not command:
+                continue
+            is_comment = command.startswith("#")
+            if not is_comment:
+                command_as_list = shlex.split(command)
             else:
-                start_python_player(py_commands, speed=state["speed"])
-        else:
-            # goto_stealthmode determines when to switch to stealthmode
-            goto_stealthmode = magicrun(command, **state)
-            # stealthmode allows user to type live commands outside of automated script
-            i -= stealthmode(state, goto_stealthmode)
-    echo_prompt(state["prompt_template"])
-    wait_for(RETURNS)
-    if not quiet:
-        secho("FINISHED SESSION", fg="yellow", bold=True)
+                command_as_list = None
+            shell_match = SHELL_RE.match(command)
+            if is_comment:
+                # Parse comment magic
+                match = OPTION_RE.match(command)
+                if match:
+                    option, arg = match.group("option"), match.group("arg")
+                    func = OPTION_MAP[option]
+                    func(state, arg)
+                elif state.commentecho():
+                    comment = command.lstrip("#")
+                    secho(comment, fg="yellow", bold=True)
+                continue
+            # Handle 'export' and 'alias' commands by storing them in SessionState
+            elif command_as_list and command_as_list[0] in ["alias", "export"]:
+                magictype(
+                    command, prompt_template=state["prompt_template"], speed=state["speed"]
+                )
+                # Store the raw commands instead of using add_envvar and add_alias
+                # to avoid having to parse the command ourselves
+                state.add_command(command)
+            # Handle ```python and ```ipython by running "player" consoles
+            elif shell_match:
+                shell_name = shell_match.groups()[0].strip()
+                py_commands = []
+                more = True
+                while more:  # slurp up all the python code
+                    try:
+                        py_command = commands[i].rstrip()
+                    except IndexError as error:
+                        raise SessionError(
+                            f"Unmatched {shell_name} code block in " "session file."
+                        ) from error
+                    i += 1
+                    if py_command.startswith("```"):
+                        i += 1
+                        more = False
+                    else:
+                        py_commands.append(py_command)
+                # Run the player console
+                magictype(
+                    shell_name,
+                    prompt_template=state["prompt_template"],
+                    speed=state["speed"],
+                )
+
+                if shell_name == "ipython":
+                    from doitlive.ipython import start_ipython_player
+
+                    # dedent all the commands to account for IPython's autoindentation
+                    ipy_commands = [textwrap.dedent(cmd) for cmd in py_commands]
+                    start_ipython_player(ipy_commands, speed=state["speed"])
+                else:
+                    start_python_player(py_commands, speed=state["speed"])
+            else:
+                # goto_stealthmode determines when to switch to stealthmode
+                goto_stealthmode = magicrun(command, **state)
+                # stealthmode allows user to type live commands outside of automated script
+                i -= stealthmode(state, goto_stealthmode)
+        echo_prompt(state["prompt_template"])
+        wait_for(RETURNS)
+        if not quiet:
+            secho("FINISHED SESSION", fg="yellow", bold=True)
 
 
 # Les CLI
@@ -392,6 +408,11 @@ ENVVAR_OPTION = click.option(
     "--envvar", "-e", metavar="<envvar>", multiple=True, help="Adds a session variable."
 )
 
+SCREENCAST_CONFIG_PATH_OPTION = click.option(
+    "--screencast-config-path",
+    "-C",
+    help="Path to the screencast config yaml file.",
+)
 
 def _compose(*functions):
     def inner(func1, func2):
@@ -402,7 +423,7 @@ def _compose(*functions):
 
 # Compose the decorators into "bundled" decorators
 player_command = _compose(
-    QUIET_OPTION, SHELL_OPTION, SPEED_OPTION, PROMPT_OPTION, ECHO_OPTION
+    QUIET_OPTION, SHELL_OPTION, SPEED_OPTION, PROMPT_OPTION, ECHO_OPTION, SCREENCAST_CONFIG_PATH_OPTION
 )
 recorder_command = _compose(SHELL_OPTION, PROMPT_OPTION, ALIAS_OPTION, ENVVAR_OPTION)
 
@@ -410,7 +431,7 @@ recorder_command = _compose(SHELL_OPTION, PROMPT_OPTION, ALIAS_OPTION, ENVVAR_OP
 @player_command
 @click.argument("session_file", type=click.File("r", encoding="utf-8"))
 @cli.command()
-def play(quiet, session_file, shell, speed, prompt, commentecho):
+def play(quiet, session_file, shell, speed, prompt, commentecho, screencast_config_path):
     """Play a session file."""
     run(
         session_file.readlines(),
@@ -420,6 +441,7 @@ def play(quiet, session_file, shell, speed, prompt, commentecho):
         test_mode=TESTING,
         prompt_template=prompt,
         commentecho=commentecho,
+        screencast_config_path=screencast_config_path,
     )
 
 
